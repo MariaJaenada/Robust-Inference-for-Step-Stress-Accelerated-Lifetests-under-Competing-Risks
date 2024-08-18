@@ -219,42 +219,25 @@ DPDloss <- function(theta, N, tauvec, stressvec, ITvec, n, beta, C=2){
   return(DPD)
 }
 
-weighted.phi <- function(theta, N, tauvec, stressvec,ITvec, n, beta, C=2){
-  
-  lambdas = c()
-  for (j in c(1:C)){
-    lambdas[(2*j-1):(2*j)] = exp(theta[(2*j-1)]+ theta[2*j]*stressvec)
-  }
-  
-  th = theoretical.probability(lambdas, tauvec, stressvec, ITvec, C)
-  
-  # survival = survival.units(N,n)
-  p = n/N
-  p[p==0] = 0.0001 ; p[p==1] = 0.999 #avoiding log(0)
-  
-  phi=0
-  for(step in 1:length(n)){
-    phiterm =p[step]*((p[step]/th[step])^beta -1)
-    phi = phi + phiterm
-    
-  }
-  return((1/(beta*(beta+1)))*phi)
-}
 
 estimate.function <-function(N, tauvec, stressvec, ITvec, n, C=2, initial = c(7, -0.01, 5, -0.02), beta.list = c(0.2,0.4,0.6,0.8,1)){
   
   estimates = list()
   
   #MLE
-  MLE =  tryCatch(optimr(par= initial, DPDloss,  N = N, tauvec = tauvec, stressvec = stressvec, ITvec = ITvec, n = n, beta=0, C=C),
+  MLE =  tryCatch(optimr(par= initial, DPDloss,  N = N, tauvec = tauvec, 
+                         stressvec = stressvec, ITvec = ITvec, n = n, beta=0, C=C,
+                         method = 'Nelder-Mead'),
                   error=function(sol){sol$code=3;return(NA)})
-  if(!is.na(MLE$par)){estimates[["MLE"]] = MLE$par}else{estimates[["MLE"]] = NA}
+  if(!is.na( sum(MLE$par)) ){estimates[["MLE"]] = as.vector(MLE$par)}else{estimates[["MLE"]] = NA}
   MLE
   
   for(beta in beta.list){
-    DPDE =  tryCatch(optimr(par= initial,DPDloss,  N = N, tauvec = tauvec, stressvec = stressvec, ITvec = ITvec, n = n, beta= beta, C=C), 
+    DPDE =  tryCatch(optimr(par= initial,DPDloss,  N = N, tauvec = tauvec, 
+                            stressvec = stressvec, ITvec = ITvec, n = n, beta= beta, C=C,
+                            method = "Nelder-Mead"), 
                      error=function(sol){sol$code=3;return(NA)})
-    if(!is.na(DPDE$par)){estimates[[paste0("DPD", beta)]] = DPDE$par}else{estimates[[paste0("DPD", beta)]] = NA}
+    if(!is.na( sum(DPDE$par)) ){estimates[[paste0("DPD", beta)]] = as.vector(DPDE$par)}else{estimates[[paste0("DPD", beta)]] = NA}
   }
   
   
